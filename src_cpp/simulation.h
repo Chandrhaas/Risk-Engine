@@ -15,7 +15,8 @@ struct Simresult
 };
 
 class MonteCarloEngine
-{   public:
+{   
+    public:
     // We are using pass-by reference to save time which is taken to copy the data
     MonteCarloEngine(int sim, int assets,
                     const vector<double>&mean,
