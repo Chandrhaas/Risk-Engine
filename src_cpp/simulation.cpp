@@ -114,7 +114,8 @@ PYBIND11_MODULE(riskengine, m)
     // Bind the struct
     py::class_<SimResult>(m, "SimResult")
         .def_readwrite("var95", &SimResult::var95)
-        .def_readwrite("var99", &SimResult::var99);
+        .def_readwrite("var99", &SimResult::var99)
+        .def_readwrite("mean_loss", &SimResult::mean_loss);
 
     // Bind the Engine class
     py::class_<MonteCarloEngine>(m, "MonteCarloEngine")

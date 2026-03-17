@@ -4,7 +4,7 @@ CXX = clang++
 INCLUDES = $(shell python -m pybind11 --includes)
 
 # FILE EXTENSION: Python expects a specific suffix for C++ extensions on Mac 
-SUFFIX = $(shell python -m pybind11 --extension)
+SUFFIX = $(shell python -m pybind11 --extension-suffix)
 
 # O3 is optimization, Wall enables warnings, std=c++17 tells c++ version, shared makes a library
 # fPIC allows it to be loaded anywhere in memory.
