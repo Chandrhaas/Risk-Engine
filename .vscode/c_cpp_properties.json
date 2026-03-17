@@ -1,0 +1,17 @@
+{
+    "configurations": [
+        {
+            "name": "Mac",
+            "includePath": [
+                "${default}",
+                "/Library/Frameworks/Python.framework/Versions/3.13/include/python3.13",
+                "/Users/harshitshukla/Documents/CODE/Projects/Risk Engine main/Risk-Engine/venv/lib/python3.13/site-packages/pybind11/include"
+            ],
+            "defines": [],
+            "cStandard": "c17",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "macos-clang-arm64"
+        }
+    ],
+    "version": 4
+}
