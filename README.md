@@ -1,7 +1,7 @@
 # Risk-Engine
 I built a high-performance Monte Carlo Risk Engine. It is a quantitative finance tool that simulates thousands of potential future market paths to calculate critical portfolio risk metrics, specifically 95% Value at Risk (VaR) , 99% Value at Risk(VaR) and Expected Shortfall
 
-![Image](https://github.com/user-attachments/assets/0380870e-7fb3-4d42-a2f3-df6dc40136ce)
+![Image](https://github.com/user-attachments/assets/135048ca-9dc0-49ef-893c-63425492214a)
 
 # Technologies used
 * c++
