@@ -2,7 +2,7 @@ import yfinance as yf
 import pandas as pd
 import os
 
-def fetch_data(tickers, start_date, end_date, output_path="data/stock_prices.csv"):
+def fetch_data(tickers, start_date="2022-01-01", end_date="2025-01-01", output_path="data/stock_prices.csv"):
 
     print("Downloading data for : {tickers}..")
 
