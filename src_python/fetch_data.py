@@ -2,14 +2,16 @@ import yfinance as yf
 import pandas as pd
 from typing import List
 
-def fetch_data(tickers:List[str],period: str="1y"):
+def fetch_data(tickers:List[str],period:int=1):
+
+    per=str(period)+'y'
 
     print("Downloading data for : {tickers}..")
     try:
         tickers_str=" ".join(tickers)
         #auto adjust = false makes sure data is real and not automatically accounts for splits/diviends etc
         # raw data has 5 columns open , high, low, close, adj close, volume
-        raw_data=yf.download(tickers_str,period=period,auto_adjust=False,progress=False)
+        raw_data=yf.download(tickers_str,period=per,auto_adjust=False,progress=False)
         
         try:
             data = raw_data['Adj Close']

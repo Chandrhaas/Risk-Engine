@@ -14,7 +14,7 @@ def calculate_var(req: PortfolioInput):
         print(f"Processing portfolio of size: {req.portfolio_size}")
         print(f"Analyzing tickers: {req.tickers}")
 
-        data=fetch_data(req.tickers)
+        data=fetch_data(req.tickers,req.years)
 
         mean_returns, cov_matrix = calculate_parameters(data)
 

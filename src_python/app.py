@@ -17,6 +17,14 @@ portfolio_size = st.sidebar.number_input(
     step=1000.0
 )
 
+years = st.sidebar.number_input(
+    "Number of Years", 
+    min_value=1, 
+    value=1,
+    max_value=5, 
+    step=1
+)
+
 ticker_input = st.sidebar.text_input(
     "Tickers (comma-separated)", 
     value="AAPL, MSFT, GOOGL"
@@ -43,6 +51,7 @@ if st.button("Run Risk Analysis", type="primary"):
             # Package the exact JSON payload expected by your Pydantic Input Model
             payload = {
                 "portfolio_size": portfolio_size,
+                "years":years,
                 "tickers": tickers,
                 "num_simulations": num_simulations
             }
@@ -64,9 +73,17 @@ if st.button("Run Risk Analysis", type="primary"):
                 col1, col2, col3 = st.columns(3)
                 
                 with col1:
-                    st.metric(label="95% VaR", value=f"${metrics['var_95']:,.2f}")
+                    var_95 = metrics['var_95']
+                    if var_95 < 0:
+                        st.metric("95% VaR", f"No loss expected", f"Min gain: ${abs(var_95):,.2f}")
+                    else:
+                        st.metric("95% VaR", f"${var_95:,.2f} max loss")
                 with col2:
-                    st.metric(label="99% VaR", value=f"${metrics['var_99']:,.2f}")
+                    var_99 = metrics['var_99']
+                    if var_99 < 0:
+                        st.metric("99% VaR", f"No loss expected", f"Min gain: ${abs(var_99):,.2f}")
+                    else:
+                        st.metric("99% VaR", f"${var_99:,.2f} max loss")
                 with col3:
                     st.metric(label="Expected Shortfall", value=f"${metrics['cvar']:,.2f}")
                     
