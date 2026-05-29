@@ -1,99 +1,84 @@
 import streamlit as st
-import numpy as np
-import pandas as pd
-import sys
-import os
-import datetime
+import requests
 
-# Get the absolute path to the src_python folder and the main project root
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.abspath(os.path.join(current_dir, '..'))
+# Configure the page layout
+st.set_page_config(page_title="Monte Carlo Risk Engine", layout="centered")
 
-# Force Python's working directory to the project root so "data/..." saves correctly
-os.chdir(project_root)
+st.title("📈 Quant Risk Engine v2.0")
+st.write("Decoupled Microservice Architecture | C++ Pybind11 Backend")
 
-# Tell Python exactly where to find the C++ engine and your other Python scripts
-sys.path.insert(0, os.path.join(project_root, 'build'))
-sys.path.insert(0, current_dir)
+st.sidebar.header("Portfolio Parameters")
 
-#  Import Your Custom Modules
-try:
-    from fetch_data import fetch_data
-    from analysis import calculate_parameters
-except ImportError as e:
-    st.error(f"🚨 Critical Error: Could not import your Python scripts. Details: {e}")
-    st.stop()
+# 1. Collect Inputs
+portfolio_size = st.sidebar.number_input(
+    "Total Portfolio Value ($)", 
+    min_value=1000.0, 
+    value=10000.0, 
+    step=1000.0
+)
 
-# Connect the Pybind11 C++ Engine 
-try:
-    import riskengine
-except ImportError as e:
-    st.error(f"🚨 Critical Error: Could not find 'riskengine'. Did you compile it? Details: {e}")
-    st.stop()
+ticker_input = st.sidebar.text_input(
+    "Tickers (comma-separated)", 
+    value="AAPL, MSFT, GOOGL"
+)
 
-# --- Page Configuration ---
-st.set_page_config(page_title="Risk Engine", page_icon="📈", layout="wide")
-st.title("Monte Carlo Risk Engine (Full Pipeline)")
-st.markdown("Fetching -> Analysis -> C++ Simulation -> UI")
-
-# --- UI Sidebar: User Inputs ---
-st.sidebar.header("Portfolio Configuration")
-initial_investment = st.sidebar.number_input("Initial Investment ($)", min_value=1000.0, value=10000.0, step=1000.0)
-num_simulations = st.sidebar.slider("Number of Simulations", min_value=1000, max_value=100000, value=10000, step=1000)
-
-default_tickers = "AAPL, MSFT, GOOGL, TSLA"
-ticker_input = st.sidebar.text_input("Enter Tickers (comma-separated)", value=default_tickers)
+# Clean the string and convert it into a list of uppercase tickers
 tickers = [t.strip().upper() for t in ticker_input.split(",") if t.strip()]
 
-# --- Main Execution Pipeline ---
-if len(tickers) < 2:
-    st.warning("Please enter at least 2 valid tickers to calculate covariance.")
-else:
-    if st.button("Run Full Pipeline", type="primary"):
-        
-        with st.status("Executing Pipeline...", expanded=True) as status:
+num_simulations = st.sidebar.slider(
+    "Number of Simulations", 
+    min_value=1000, 
+    max_value=100000, 
+    value=10000, 
+    step=1000
+)
+
+# 2. The Execution Trigger
+if st.button("Run Risk Analysis", type="primary"):
+    if not tickers:
+        st.warning("Please enter at least one valid ticker.")
+    else:
+        with st.spinner(f"Running {num_simulations:,} Monte Carlo paths via C++ Engine..."):
+            
+            # Package the exact JSON payload expected by your Pydantic Input Model
+            payload = {
+                "portfolio_size": portfolio_size,
+                "tickers": tickers,
+                "num_simulations": num_simulations
+            }
+            
             try:
-                # --- STEP 1: Execute fetch_data.py ---
-                st.write("Fetching data...")
-                end_date = datetime.date.today()
-                start_date = end_date - datetime.timedelta(days=365)
+                # Shoot the payload to the local FastAPI server
+                response = requests.post("http://127.0.0.1:8000/portfolio/var", json=payload)
                 
-                fetch_data(tickers, start_date=start_date.strftime("%Y-%m-%d"), end_date=end_date.strftime("%Y-%m-%d"))
+                # Check if FastAPI rejected the data (e.g., 422 Validation Error)
+                response.raise_for_status()
                 
-                # --- STEP 2: Execute analysis.py ---
-                st.write("Analyzing data...")
-                calculate_parameters()
+                # Parse the JSON response back into a Python dictionary
+                metrics = response.json()
                 
-                # --- STEP 3: Load the Processed Data ---
-                st.write("Loading parameters for C++ Engine...")
-                if not os.path.exists("data/means.csv") or not os.path.exists("data/covariance.csv"):
-                    raise FileNotFoundError("Pipeline failed: CSV files were not generated in the 'data' folder.")
-
-                means_df = pd.read_csv("data/means.csv", index_col=0)
-                cov_df = pd.read_csv("data/covariance.csv", index_col=0)
+                # 3. Render the Results
+                st.success(metrics.get("message", "Simulation completed successfully!"))
                 
-                num_assets = len(tickers)
-                weights = [1.0 / num_assets] * num_assets
-                mean_returns_list = means_df.iloc[:, 0].tolist()
-                cov_matrix_1d_list = cov_df.values.flatten().tolist()
+                st.subheader("Risk Metrics (252-Day Horizon)")
+                col1, col2, col3 = st.columns(3)
                 
-                # --- STEP 4: Execute C++ Engine ---
-                st.write("Executing C++ Engine...")
-                engine = riskengine.MonteCarloEngine(num_assets, num_simulations)
-                result = engine.runSimulation(initial_investment, weights, mean_returns_list, cov_matrix_1d_list)
-                
-                status.update(label="Pipeline Complete!", state="complete", expanded=False)
-                
+                with col1:
+                    st.metric(label="95% VaR", value=f"${metrics['var_95']:,.2f}")
+                with col2:
+                    st.metric(label="99% VaR", value=f"${metrics['var_99']:,.2f}")
+                with col3:
+                    st.metric(label="Expected Shortfall", value=f"${metrics['cvar']:,.2f}")
+                    
+            # 4. Error Handling
+            except requests.exceptions.ConnectionError:
+                st.error("🚨 API Connection Failed: Is your FastAPI server running on port 8000?")
+            except requests.exceptions.HTTPError as e:
+                try:
+                    # Attempt to extract FastAPI's exact reason for rejection
+                    error_detail = response.json().get("detail", str(e))
+                    st.error(f"API Error: {error_detail}")
+                except ValueError:
+                    st.error(f"HTTP Error: {e}")
             except Exception as e:
-                status.update(label="Pipeline Failed!", state="error", expanded=True)
-                st.error(f"An error occurred: {e}")
-                st.stop()
-
-        # --- STEP 5: Display Results ---
-        col1, col2 ,col3= st.columns(3)
-        with col1:
-            st.metric(label="95% Value at Risk (VaR)", value=f"${result.var95:,.2f}")
-        with col2:
-            st.metric(label="99% Value at Risk (VaR)", value=f"${result.var99:,.2f}")
-        with col3:
-            st.metric(label="Expected Shortfall", value=f"${result.mean_loss:,.2f}")
+                st.error(f"An unexpected error occurred: {e}")

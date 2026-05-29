@@ -30,10 +30,10 @@ def fetch_data(tickers:List[str],period: str="1y"):
         
         #handling missing values by forward and backward shift , we use forward shift first because on some day we know the previous day's value
         # but not the next day's , only for those days where we do not have a previous day's value we use the backward shift.
-        data = raw_data.ffill().bfill()
+        data = data.ffill().bfill()
 
         print(f"Successfully loaded {len(data)} trading days into memory.")
-        return raw_data
+        return data
     
     except Exception as e:
         # If this fails,trigger a 500 error safely

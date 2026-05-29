@@ -1,6 +1,6 @@
 import os, sys
 from fastapi import FastAPI,HTTPException
-from model import PortfolioInput,RiskMetricsOutput
+from api.model import PortfolioInput,RiskMetricsOutput
 from src_python.fetch_data import fetch_data
 from src_python.analysis import calculate_parameters
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'build')))
@@ -12,9 +12,9 @@ app = FastAPI()
 def calculate_var(req: PortfolioInput):
     try:
         print(f"Processing portfolio of size: {req.portfolio_size}")
-        print(f"Analyzing tickers: {req.ticker}")
+        print(f"Analyzing tickers: {req.tickers}")
 
-        data=fetch_data(req.ticker)
+        data=fetch_data(req.tickers)
 
         mean_returns, cov_matrix = calculate_parameters(data)
 

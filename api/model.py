@@ -3,7 +3,7 @@ from typing import List,Annotated
 
 class PortfolioInput(BaseModel):
     portfolio_size:Annotated[float,Field(...,gt=0,lt=1000000,description='total value of the portfolio')]
-    ticker : Annotated[List[str],Field(...,description='tickers of the stocks in the portfolio')]
+    tickers : Annotated[List[str],Field(...,description='tickers of the stocks in the portfolio')]
     num_simulations : Annotated[int,Field(...,gt=999,lt=100001,description='number of predicted futures')]
 
 class RiskMetricsOutput(BaseModel):
