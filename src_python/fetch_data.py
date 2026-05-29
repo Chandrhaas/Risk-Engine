@@ -15,7 +15,7 @@ def fetch_data(tickers, start_date, end_date, output_path="data/stock_prices.csv
         data = raw_data['Adj Close']
     except KeyError:
         print("Adj close not found , using close ")
-        data = raw_data['Adj Close']
+        data = raw_data['Close']
     
     if data.empty:
         print("No data found")
