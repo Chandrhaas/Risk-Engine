@@ -213,3 +213,5 @@ __marimo__/
 
 note.txt
 test.py
+.vscode
+.DS_Store
