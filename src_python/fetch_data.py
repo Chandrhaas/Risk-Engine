@@ -1,35 +1,40 @@
 import yfinance as yf
 import pandas as pd
-import os
+from typing import List
 
-def fetch_data(tickers, start_date="2022-01-01", end_date="2025-01-01", output_path="data/stock_prices.csv"):
+def fetch_data(tickers:List[str],period: str="1y"):
 
     print("Downloading data for : {tickers}..")
-
-    #auto adjust = false makes sure data is real and not automatically accounts for splits/diviends etc
-    # raw data has 5 columns open , high, low, close, adj close, volume
-    raw_data=yf.download(tickers,start_date,end_date, auto_adjust=False)
-    print(f"Columns: {raw_data.columns}")
-
     try:
-        data = raw_data['Adj Close']
-    except KeyError:
-        print("Adj close not found , using close ")
-        data = raw_data['Close']
+        tickers_str=" ".join(tickers)
+        #auto adjust = false makes sure data is real and not automatically accounts for splits/diviends etc
+        # raw data has 5 columns open , high, low, close, adj close, volume
+        raw_data=yf.download(tickers_str,period=period,auto_adjust=False,progress=False)
+        
+        try:
+            data = raw_data['Adj Close']
+        except KeyError:
+            print("Adj close not found , using close ")
+            data = raw_data['Close']
+
+        #yfinance gives different output format for single vs multiple tickers 
+        #for consistency we are forcing a single ticker intput into a 2D table
+        if isinstance(data, pd.Series):
+            data = data.to_frame(name=tickers[0])
     
-    if data.empty:
-        print("No data found")
-        return
+        if data.empty:
+            raise ValueError("Yahoo Finance returned empty data. Check your tickers.")
+        
+        #Drop any days where a stock didn't trade
+        data.dropna(inplace=True)
+        
+        #handling missing values by forward and backward shift , we use forward shift first because on some day we know the previous day's value
+        # but not the next day's , only for those days where we do not have a previous day's value we use the backward shift.
+        data = raw_data.ffill().bfill()
+
+        print(f"Successfully loaded {len(data)} trading days into memory.")
+        return raw_data
     
-    #handling missing values by forward and backward shift , we use forward shift first because on some day we know the previous day's value
-    # but not the next day's , only for those days where we do not have a previous day's value we use the backward shift.
-    data = data.ffill().bfill()
-
-    # if data dir DNE then it makes it otherwsie leaves it alone 
-    os.makedirs(os.path.dirname(output_path),exist_ok=True)
-
-    data.to_csv(output_path)
-
-if __name__== "__main__":
-    tickers=["AAPL","MSFT","GOOG","AMZN"]
-    fetch_data(tickers,start_date="2022-01-01", end_date="2024-01-01")
+    except Exception as e:
+        # If this fails,trigger a 500 error safely
+        raise ValueError(f"Data fetch failed: {str(e)}")
